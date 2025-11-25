@@ -1,0 +1,6 @@
+{
+  "appName": "Parcel Distribution",
+  "apiBaseUrl": "http://localhost:5000/api",
+  "ui": { "primaryColor": "#9BEC00", "dateFormat": "DD/MM/YYYY" },
+  "features": { "allowRuleEditing": true }
+}
