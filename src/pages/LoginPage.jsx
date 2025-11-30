@@ -1,80 +1,126 @@
-import React from 'react';
-import { Container, Box, TextField, Button, Alert, Paper, Typography, Link, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { useDispatch, useSelector } from 'react-redux';
-import { login } from '../features/auth/authSlice';
-import api from '../api/axios';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import {
+  Container,
+  Box,
+  TextField,
+  Button,
+  Alert,
+  Paper,
+  Typography,
+  Link,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { login } from "../features/auth/authSlice";
+import api from "../api/axios";
+import { useNavigate } from "react-router-dom";
 
-export default function LoginPage(){
+/**
+ * LoginPage component handles user authentication (login and registration)
+ */
+export default function LoginPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const auth = useSelector(s => s.auth);
+  const auth = useSelector((state) => state.auth);
 
-  const [mode, setMode] = React.useState('login'); // 'login' | 'register'
+  const [mode, setMode] = React.useState("login"); // 'login' | 'register'
   const [loading, setLoading] = React.useState(false);
-  const [globalMsg, setGlobalMsg] = React.useState(null);
+  const [message, setMessage] = React.useState(null);
 
-  // login fields
-  const [email, setEmail] = React.useState('admin@example.com');
-  const [password, setPassword] = React.useState('password');
+  // Login form fields
+  const [email, setEmail] = React.useState("admin@example.com");
+  const [password, setPassword] = React.useState("password");
 
-  // register fields
-  const [name, setName] = React.useState('');
-  const [regEmail, setRegEmail] = React.useState('');
-  const [regPassword, setRegPassword] = React.useState('');
-  const [role, setRole] = React.useState('operator');
+  // Registration form fields
+  const [name, setName] = React.useState("");
+  const [registerEmail, setRegisterEmail] = React.useState("");
+  const [registerPassword, setRegisterPassword] = React.useState("");
+  const [role, setRole] = React.useState("operator");
 
-  React.useEffect(()=>{
-    if (auth.token) navigate('/');
+  // Redirect to dashboard if already logged in
+  React.useEffect(() => {
+    if (auth.token) {
+      navigate("/");
+    }
   }, [auth.token, navigate]);
 
-  async function handleLogin(e){
-    e.preventDefault();
-    setGlobalMsg(null);
+  // Handle login form submission
+  async function handleLogin(event) {
+    event.preventDefault();
+    setMessage(null);
     setLoading(true);
+
     try {
-      const res = await dispatch(login({ email, password }));
+      const result = await dispatch(login({ email, password }));
       setLoading(false);
-      if (res.error) {
-        setGlobalMsg({ type: 'error', text: res.payload?.message || res.error.message || 'Login failed' });
+
+      if (result.error) {
+        setMessage({
+          type: "error",
+          text:
+            result.payload?.message || result.error.message || "Login failed",
+        });
         return;
       }
-      // login thunk sets token -> effect will navigate
-    } catch (err) {
+      // Login successful - token is set, useEffect will navigate
+    } catch (error) {
       setLoading(false);
-      setGlobalMsg({ type: 'error', text: err.message || 'Login failed' });
+      setMessage({ type: "error", text: error.message || "Login failed" });
     }
   }
 
-  async function handleRegister(e){
-    e.preventDefault();
-    setGlobalMsg(null);
+  // Handle registration form submission
+  async function handleRegister(event) {
+    event.preventDefault();
+    setMessage(null);
 
-    // basic client-side validation
-    if (!name.trim() || !regEmail.trim() || !regPassword) {
-      setGlobalMsg({ type: 'error', text: 'Name, email and password are required' });
+    // Basic client-side validation
+    if (!name.trim() || !registerEmail.trim() || !registerPassword) {
+      setMessage({
+        type: "error",
+        text: "Name, email and password are required",
+      });
       return;
     }
 
     setLoading(true);
+
     try {
-      // call register endpoint with role only
-      const payload = { name: name.trim(), email: regEmail.trim(), password: regPassword, role };
-      await api.post('/auth/register', payload);
-      // on success, auto-login the user
-      const res = await dispatch(login({ email: regEmail.trim(), password: regPassword }));
+      // Register the new user
+      const payload = {
+        name: name.trim(),
+        email: registerEmail.trim(),
+        password: registerPassword,
+        role,
+      };
+      await api.post("/auth/register", payload);
+
+      // On successful registration, automatically log in the user
+      const result = await dispatch(
+        login({
+          email: registerEmail.trim(),
+          password: registerPassword,
+        })
+      );
       setLoading(false);
-      if (res.error) {
-        // registered but login failed for some reason
-        setGlobalMsg({ type: 'success', text: 'Registered successfully — please login' });
-        setMode('login');
-      } else {
-        // login success -> navigate by effect
+
+      if (result.error) {
+        // Registration succeeded but login failed
+        setMessage({
+          type: "success",
+          text: "Registered successfully — please login",
+        });
+        setMode("login");
       }
-    } catch (err) {
+      // Login successful - token is set, useEffect will navigate
+    } catch (error) {
       setLoading(false);
-      const msg = err.response?.data?.message || err.message || 'Registration failed';
-      setGlobalMsg({ type: 'error', text: msg });
+      const errorMessage =
+        error.response?.data?.message || error.message || "Registration failed";
+      setMessage({ type: "error", text: errorMessage });
     }
   }
 
@@ -82,23 +128,28 @@ export default function LoginPage(){
     <Container maxWidth="sm">
       <Paper sx={{ mt: 8, p: 4 }}>
         <Typography variant="h5" gutterBottom>
-          {mode === 'login' ? 'Login' : 'Register'}
+          {mode === "login" ? "Login" : "Register"}
         </Typography>
 
-        {globalMsg && (
-          <Alert severity={globalMsg.type === 'error' ? 'error' : 'success'} sx={{ mb: 2 }}>
-            {globalMsg.text}
+        {/* Display success or error messages */}
+        {message && (
+          <Alert
+            severity={message.type === "error" ? "error" : "success"}
+            sx={{ mb: 2 }}
+          >
+            {message.text}
           </Alert>
         )}
 
-        {mode === 'login' ? (
+        {/* Login Form */}
+        {mode === "login" ? (
           <form onSubmit={handleLogin}>
             <TextField
               label="Email"
               fullWidth
               sx={{ mb: 2 }}
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               disabled={loading}
             />
             <TextField
@@ -107,37 +158,44 @@ export default function LoginPage(){
               fullWidth
               sx={{ mb: 2 }}
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               disabled={loading}
             />
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               <Button type="submit" variant="contained" disabled={loading}>
-                {loading ? 'Signing in...' : 'Login'}
+                {loading ? "Signing in..." : "Login"}
               </Button>
               <Typography variant="body2">
-                No account?{' '}
-                <Link component="button" onClick={() => { setMode('register'); setGlobalMsg(null); }}>
+                No account?{" "}
+                <Link
+                  component="button"
+                  onClick={() => {
+                    setMode("register");
+                    setMessage(null);
+                  }}
+                >
                   Register
                 </Link>
               </Typography>
             </Box>
           </form>
         ) : (
+          /* Registration Form */
           <form onSubmit={handleRegister}>
             <TextField
               label="Full name"
               fullWidth
               sx={{ mb: 2 }}
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(event) => setName(event.target.value)}
               disabled={loading}
             />
             <TextField
               label="Email"
               fullWidth
               sx={{ mb: 2 }}
-              value={regEmail}
-              onChange={e => setRegEmail(e.target.value)}
+              value={registerEmail}
+              onChange={(event) => setRegisterEmail(event.target.value)}
               disabled={loading}
             />
             <TextField
@@ -145,25 +203,36 @@ export default function LoginPage(){
               type="password"
               fullWidth
               sx={{ mb: 2 }}
-              value={regPassword}
-              onChange={e => setRegPassword(e.target.value)}
+              value={registerPassword}
+              onChange={(event) => setRegisterPassword(event.target.value)}
               disabled={loading}
             />
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Role</InputLabel>
-              <Select value={role} onChange={e => setRole(e.target.value)} label="Role" disabled={loading}>
+              <Select
+                value={role}
+                onChange={(event) => setRole(event.target.value)}
+                label="Role"
+                disabled={loading}
+              >
                 <MenuItem value="operator">Operator</MenuItem>
                 <MenuItem value="insurance">Insurance</MenuItem>
                 <MenuItem value="admin">Admin</MenuItem>
               </Select>
             </FormControl>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               <Button type="submit" variant="contained" disabled={loading}>
-                {loading ? 'Creating...' : 'Register'}
+                {loading ? "Creating..." : "Register"}
               </Button>
               <Typography variant="body2">
-                Already have an account?{' '}
-                <Link component="button" onClick={() => { setMode('login'); setGlobalMsg(null); }}>
+                Already have an account?{" "}
+                <Link
+                  component="button"
+                  onClick={() => {
+                    setMode("login");
+                    setMessage(null);
+                  }}
+                >
                   Login
                 </Link>
               </Typography>

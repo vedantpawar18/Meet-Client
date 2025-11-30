@@ -1,40 +1,187 @@
-import React from 'react';
-import { Box, Typography, TextField, Button, Table, TableBody, TableCell, TableHead, TableRow, Paper } from '@mui/material';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment } from '../features/departments/departmentsSlice';
-import { showNotification } from '../features/notifications/notificationsSlice';
+import React from "react";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchDepartments,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+} from "../features/departments/departmentsSlice";
+import { showNotification } from "../features/notifications/notificationsSlice";
 
-export default function DepartmentsPage(){
+/**
+ * DepartmentsPage component displays and manages departments
+ */
+export default function DepartmentsPage() {
   const dispatch = useDispatch();
-  const { list } = useSelector(s=>s.departments);
-  const [name, setName] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  React.useEffect(()=>{ dispatch(fetchDepartments()); },[]);
-  async function add(){ if(!name) return; const res = await dispatch(createDepartment({ name, description })); if(res.error) dispatch(showNotification({ message: res.payload?.message||'Failed', severity: 'error' })); else { setName(''); setDescription(''); dispatch(showNotification({ message: 'Added', severity: 'success' })); } }
-  async function doEdit(dep){
-    const newName = window.prompt('Name', dep.name);
-    if(newName==null) return;
-    const newDesc = window.prompt('Description', dep.description || '');
-    const res = await dispatch(updateDepartment({ id: dep._id, payload: { name: newName, description: newDesc } }));
-    if(res.error) dispatch(showNotification({ message: res.payload?.message || 'Update failed', severity: 'error' })); else dispatch(showNotification({ message: 'Updated', severity: 'success' }));
+  const { list } = useSelector((state) => state.departments);
+  const user = useSelector((state) => state.auth.user);
+
+  const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
+
+  // Fetch departments on component mount
+  React.useEffect(() => {
+    dispatch(fetchDepartments());
+  }, [dispatch]);
+
+  // Add a new department
+  async function handleAdd() {
+    if (!name.trim()) {
+      return;
+    }
+
+    const result = await dispatch(
+      createDepartment({ name: name.trim(), description: description.trim() })
+    );
+
+    if (result.error) {
+      dispatch(
+        showNotification({
+          message: result.payload?.message || "Failed to add department",
+          severity: "error",
+        })
+      );
+    } else {
+      setName("");
+      setDescription("");
+      dispatch(
+        showNotification({
+          message: "Department added successfully",
+          severity: "success",
+        })
+      );
+    }
   }
-  async function doDelete(id){ if(!window.confirm('Delete department?')) return; const res = await dispatch(deleteDepartment(id)); if(res.error) dispatch(showNotification({ message: res.payload?.message||'Failed', severity: 'error' })); else dispatch(showNotification({ message: 'Deleted', severity: 'success' })); }
-  const user = useSelector(s=>s.auth.user);
+
+  // Edit an existing department
+  async function handleEdit(department) {
+    const newName = window.prompt("Name", department.name);
+    if (newName === null) {
+      return; // User cancelled
+    }
+
+    const newDescription = window.prompt(
+      "Description",
+      department.description || ""
+    );
+
+    const result = await dispatch(
+      updateDepartment({
+        id: department._id,
+        payload: { name: newName, description: newDescription },
+      })
+    );
+
+    if (result.error) {
+      dispatch(
+        showNotification({
+          message: result.payload?.message || "Update failed",
+          severity: "error",
+        })
+      );
+    } else {
+      dispatch(
+        showNotification({
+          message: "Department updated successfully",
+          severity: "success",
+        })
+      );
+    }
+  }
+
+  // Delete a department
+  async function handleDelete(id) {
+    if (!window.confirm("Delete this department?")) {
+      return;
+    }
+
+    const result = await dispatch(deleteDepartment(id));
+
+    if (result.error) {
+      dispatch(
+        showNotification({
+          message: result.payload?.message || "Failed to delete department",
+          severity: "error",
+        })
+      );
+    } else {
+      dispatch(
+        showNotification({
+          message: "Department deleted successfully",
+          severity: "success",
+        })
+      );
+    }
+  }
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Departments</Typography>
-      {user?.role==='admin' && (
-        <Paper sx={{p:2,mb:2}}>
-          <TextField label="Name" value={name} onChange={e=>setName(e.target.value)} sx={{mr:1}} />
-          <TextField label="Description" value={description} onChange={e=>setDescription(e.target.value)} sx={{mr:1}} />
-          <Button variant="contained" onClick={add}>Add</Button>
+      <Typography variant="h4" gutterBottom>
+        Departments
+      </Typography>
+
+      {/* Admin-only: Add new department form */}
+      {user?.role === "admin" && (
+        <Paper sx={{ p: 2, mb: 2 }}>
+          <TextField
+            label="Name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            sx={{ mr: 1 }}
+          />
+          <TextField
+            label="Description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            sx={{ mr: 1 }}
+          />
+          <Button variant="contained" onClick={handleAdd}>
+            Add
+          </Button>
         </Paper>
       )}
+
+      {/* Departments table */}
       <Paper>
         <Table>
-          <TableHead><TableRow><TableCell>Name</TableCell><TableCell>Description</TableCell><TableCell>Action</TableCell></TableRow></TableHead>
-          <TableBody>{list.map(d=> (<TableRow key={d._id}><TableCell>{d.name}</TableCell><TableCell>{d.description}</TableCell><TableCell><Button onClick={()=>doEdit(d)}>Edit</Button><Button color="error" onClick={()=>doDelete(d._id)}>Delete</Button></TableCell></TableRow>))}</TableBody>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Description</TableCell>
+              <TableCell>Action</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {list.map((department) => (
+              <TableRow key={department._id}>
+                <TableCell>{department.name}</TableCell>
+                <TableCell>{department.description || "-"}</TableCell>
+                <TableCell>
+                  <Button onClick={() => handleEdit(department)} sx={{ mr: 1 }}>
+                    Edit
+                  </Button>
+                  <Button
+                    color="error"
+                    onClick={() => handleDelete(department._id)}
+                  >
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </Paper>
     </Box>
