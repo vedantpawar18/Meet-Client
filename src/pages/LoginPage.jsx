@@ -31,8 +31,8 @@ export default function LoginPage() {
   const [message, setMessage] = React.useState(null);
 
   // Login form fields
-  const [email, setEmail] = React.useState("admin@example.com");
-  const [password, setPassword] = React.useState("password");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
 
   // Registration form fields
   const [name, setName] = React.useState("");
