@@ -1,2 +1,3 @@
-import { useState } from 'react';
-// simple snackbar hook consumer components can use; we'll implement inline in Layout using MUI Snackbar
+// This file is reserved for notification utility functions
+// Currently, notifications are handled directly in the Layout component using MUI Snackbar
+// and managed through Redux (notificationsSlice)
